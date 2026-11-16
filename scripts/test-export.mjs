@@ -2,9 +2,13 @@
 // Uses pdf.js's own viewport transform as the oracle for rotated / offset pages.
 import { createServer } from 'vite';
 import { PDFDocument, degrees } from 'pdf-lib';
+import './node-polyfills.mjs';
+import { fileURLToPath } from 'node:url';
+import { sep } from 'node:path';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
+const FONT_URL = fileURLToPath(new URL('../node_modules/pdfjs-dist/standard_fonts/', import.meta.url)).split(sep).join('/');
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 const { toPdfPoint } = await vite.ssrLoadModule('/src/geometry.ts');
 const { initFonts } = await vite.ssrLoadModule('/src/fonts.ts');
@@ -21,7 +25,7 @@ for (const rot of [0, 90, 180, 270]) {
 }
 const srcBytes = await src.save();
 
-const doc = await pdfjs.getDocument({ data: srcBytes.slice() }).promise;
+const doc = await pdfjs.getDocument({ data: srcBytes.slice(), standardFontDataUrl: FONT_URL }).promise;
 let failures = 0;
 const infos = [];
 for (let i = 1; i <= doc.numPages; i++) {
@@ -68,7 +72,7 @@ writeFileSync('test-output/rotations-src.pdf', srcBytes);
 writeFileSync('test-output/rotations-filled.pdf', out);
 
 // The output must re-open in pdf.js with the same page count and contain our text.
-const re = await pdfjs.getDocument({ data: out.slice() }).promise;
+const re = await pdfjs.getDocument({ data: out.slice(), standardFontDataUrl: FONT_URL }).promise;
 if (re.numPages !== 4) failures++, console.error('page count changed');
 const txt = (await (await re.getPage(2)).getTextContent()).items.map((i) => i.str).join(' ');
 if (!txt.includes('Top-left reads upright on page 2')) failures++, console.error('text missing:', txt);
@@ -90,7 +94,7 @@ else {
 }
 if ((await extractProject(srcBytes)) !== null) failures++, console.error('false positive on a plain PDF');
 if ((await extractProject(out)) !== null) failures++, console.error('false positive on a non-project export');
-const pj = await pdfjs.getDocument({ data: withProject.slice() }).promise;
+const pj = await pdfjs.getDocument({ data: withProject.slice(), standardFontDataUrl: FONT_URL }).promise;
 if (pj.numPages !== 4) failures++, console.error('project export does not open in pdf.js');
 console.log(`export sizes: plain ${out.length} B, with project ${withProject.length} B (original ${srcBytes.length} B)`);
 

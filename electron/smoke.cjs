@@ -10,6 +10,9 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const out = (f) => path.join(root, 'test-output', f);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Electron 45 replaced the sync clipboard API (availableFormats, ...) with an async, W3C-style one.
+// Web custom MIME types (our application/x-pdfmark+json) show up as one 'Web Custom MIME Data Format' entry.
+const clipboardFormats = async () => (await clipboard.read()).flatMap((item) => item.types);
 
 setTimeout(() => {
   console.error('smoke test timed out');
@@ -432,7 +435,7 @@ async function run() {
     await click(await at(1, 100, 100));
     check((await outlines()) === 1, 'circle on page 2 should be selected');
     await chord('c');
-    console.log('clipboard formats after Ctrl+C:', clipboard.availableFormats().join(', '));
+    console.log('clipboard formats after Ctrl+C:', await clipboardFormats().then((f) => f.join(', ')));
     check(/Copied 1 mark/.test(await statusText()), 'copy status: ' + (await statusText()));
     await hover(await at(0, 300, 400));
     await chord('v');
@@ -487,7 +490,8 @@ async function run() {
     await modClick(await at(1, 150, 105), ['shift']);
     check((await outlines()) === 2, 'circle + text should be selected: ' + (await outlines()));
     await chord('c');
-    check(clipboard.readText() === 'upright?', 'plain-text twin should be the text box text: ' + JSON.stringify(clipboard.readText()));
+    const twin = await clipboard.readText();
+    check(twin === 'upright?', 'plain-text twin should be the text box text: ' + JSON.stringify(twin));
     const n1 = await total();
     const beforeP1 = await marksOn(0);
     await hover(await at(0, 300, 400));
@@ -514,11 +518,12 @@ async function run() {
     await sleep(200);
     check((await js(`document.activeElement?.tagName`)) === 'TEXTAREA', 'Enter should open the editor');
     await chord('a');
-    clipboard.writeText('sentinel');
+    await clipboard.writeText('sentinel');
     const n2 = await total();
     await chord('c');
-    check(clipboard.readText() === 'upright?', 'Ctrl+C in the editor should copy the selected text: ' + JSON.stringify(clipboard.readText()));
-    check(!clipboard.availableFormats().includes('application/x-pdfmark+json') && (await total()) === n2, 'no marks copied from the editor');
+    const copied = await clipboard.readText();
+    check(copied === 'upright?', 'Ctrl+C in the editor should copy the selected text: ' + JSON.stringify(copied));
+    check(!(await clipboardFormats()).some((f) => f.includes('Web Custom MIME Data Format')) && (await total()) === n2, 'no marks copied from the editor');
     await chord('End', []);
     await chord('v');
     const typed = await js(`document.querySelector('textarea')?.value`);
@@ -530,7 +535,7 @@ async function run() {
 
     // 8. The system clipboard now holds plain text only; paste falls back to the in-memory marks.
     key('Escape');
-    clipboard.writeText('just some text');
+    await clipboard.writeText('just some text');
     await hover(await at(0, 300, 400));
     const n3 = await total();
     await chord('v');

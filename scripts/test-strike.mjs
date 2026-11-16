@@ -2,9 +2,13 @@
 // determinism, and vector export on rotated pages. Run with: node scripts/test-strike.mjs
 import { createServer } from 'vite';
 import { PDFDocument, degrees } from 'pdf-lib';
+import './node-polyfills.mjs';
+import { fileURLToPath } from 'node:url';
+import { sep } from 'node:path';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
+const FONT_URL = fileURLToPath(new URL('../node_modules/pdfjs-dist/standard_fonts/', import.meta.url)).split(sep).join('/');
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 const { stampShape, resizeStamp } = await vite.ssrLoadModule('/src/geometry.ts');
 const { initFonts } = await vite.ssrLoadModule('/src/fonts.ts');
@@ -90,7 +94,7 @@ for (const rot of [0, 90, 180, 270]) {
   p.drawText(`rotation ${rot}  The quick brown fox jumps over the lazy dog`, { x: 120, y: 700, size: 16 });
 }
 const srcBytes = await src.save();
-const doc = await pdfjs.getDocument({ data: srcBytes.slice() }).promise;
+const doc = await pdfjs.getDocument({ data: srcBytes.slice(), standardFontDataUrl: FONT_URL }).promise;
 const infos = [];
 for (let i = 1; i <= doc.numPages; i++) {
   const page = await doc.getPage(i);
@@ -107,7 +111,7 @@ const out = await exportVector(srcBytes, infos, annots);
 mkdirSync('test-output', { recursive: true });
 writeFileSync('test-output/strike-src.pdf', srcBytes);
 writeFileSync('test-output/strike-filled.pdf', out);
-const re = await pdfjs.getDocument({ data: out.slice() }).promise;
+const re = await pdfjs.getDocument({ data: out.slice(), standardFontDataUrl: FONT_URL }).promise;
 if (re.numPages !== 4) fail('page count changed');
 // The marks are vector paths: each page's content stream should have grown.
 if (out.length <= srcBytes.length) fail('export did not add content');

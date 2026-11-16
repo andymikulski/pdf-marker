@@ -125,7 +125,7 @@ export function App() {
         const fromProjectFile = isProjectFile(file.name, fileBytes);
         const project = fromProjectFile ? parseProjectFile(fileBytes) : await extractProject(fileBytes);
         const loaded = await loadPdf(project ? project.original : fileBytes);
-        pdf?.doc.destroy();
+        void pdf?.doc.loadingTask.destroy();
         editRef.current = null;
         setEditingId(null);
         setSelectedIds([]);
