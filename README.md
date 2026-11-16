@@ -98,6 +98,14 @@ Separately, marks autosave in the browser for each PDF, so reopening the same or
   SIL Open Font License, except Homemade Apple, which is Apache 2.0. Both licenses allow bundling the fonts in an
   app and embedding them in documents. Characters a font can't show (emoji, most non-Latin scripts) export as `?`.
 
+## License
+
+MIT for PDF Marker's own code (see [LICENSE](LICENSE)). Bundled third-party code and fonts keep their own
+licenses:
+- pdf.js: Apache 2.0.
+- pdf-lib and React: MIT.
+- The handwriting fonts: SIL Open Font License, except Homemade Apple, which is Apache 2.0.
+
 ## Project layout
 
 | Path | What's there |
