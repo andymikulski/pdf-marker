@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-*/
+release/
+
+# generated at install time from pdfjs-dist (scripts/copy-pdfjs-assets.mjs)
+public/pdfjs/
+
+# test artifacts (scripts/*.mjs and electron/smoke.cjs write here)
+test-output/
+
+# your own documents: filled forms and projects can contain personal details,
+# so never commit them by accident if you save them inside this folder
+*.pdf
+*.pdfmark
+
+# editor / OS / logs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
